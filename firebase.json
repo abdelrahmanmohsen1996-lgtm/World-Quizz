@@ -1,10 +1,5 @@
 {
-  "hosting": {
-    "public": "docs",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
-    "cleanUrls": true,
-    "headers": [
-      { "source": "**/*.html", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }
-    ]
+  "projects": {
+    "default": "world-quizz-9c9be"
   }
 }
