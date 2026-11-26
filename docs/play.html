@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>World Quiz Run · Play</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@900&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:light dark;--bg:light-dark(#13261d,#0a140f);--card:light-dark(#fff,#15241c);--ink:light-dark(#0f1c15,#eaf5ee);--mute:light-dark(#5b6b62,#9fb3a7);--line:light-dark(#dfe8e2,#25392e);--acc:#3dcd58;--accd:#1f8f36;--bad:#e11d48}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "DM Sans",system-ui,sans-serif;min-height:100vh;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+.wrap{max-width:520px;margin:0 auto;padding:16px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:10px;color:#fff;margin-bottom:14px}
+.top h1{font-family:"Big Shoulders Display",Impact,sans-serif;font-size:28px;margin:0;line-height:1}
+.me{text-align:right;font-size:14px;opacity:.9}.me b{display:block;font-size:22px;font-family:"Big Shoulders Display",Impact,sans-serif;opacity:1}
+.card{background:var(--card);border-radius:20px;padding:20px;box-shadow:0 14px 30px rgba(0,0,0,.3)}
+h2{font-size:24px;line-height:1.2;margin:0 0 14px;text-wrap:balance}
+p{margin:0 0 10px}.mute{color:var(--mute)}
+button{font:inherit;cursor:pointer}
+.pick{display:block;width:100%;text-align:left;border:2px solid var(--line);background:transparent;color:var(--ink);border-radius:14px;padding:14px 16px;min-height:56px;font-size:19px;font-weight:700;margin-bottom:10px}
+.pick:focus-visible,.opt:focus-visible,.link:focus-visible{outline:3px solid #ffd166;outline-offset:2px}
+.opt{display:flex;align-items:center;gap:12px;width:100%;border:2px solid var(--line);background:transparent;color:var(--ink);border-radius:14px;padding:12px 14px;min-height:64px;font-size:19px;font-weight:700;margin-bottom:10px;text-align:left}
+.opt i{font-style:normal;width:34px;height:34px;border-radius:9px;display:grid;place-items:center;background:var(--line);flex:none}
+.opt svg{width:42px;height:28px;border-radius:4px;flex:none;box-shadow:0 0 0 1px rgba(0,0,0,.12)}
+.opt.sel{border-color:var(--accd);background:color-mix(in srgb,var(--acc) 16%,transparent)}
+.opt.right{border-color:var(--accd);background:color-mix(in srgb,var(--acc) 20%,transparent)}
+.opt.wrong{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 14%,transparent)}
+.opt:disabled{cursor:default}.opt.dim{opacity:.4}
+.timer{height:8px;background:var(--line);border-radius:9px;overflow:hidden;margin-bottom:14px}.timer div{height:100%;background:var(--acc);width:100%}
+.tag{display:inline-block;background:var(--line);border-radius:99px;padding:4px 12px;font-size:14px;font-weight:700;margin-bottom:10px}
+.big{font-family:"Big Shoulders Display",Impact,sans-serif;font-size:56px;line-height:1;margin:8px 0}
+.ok{color:var(--accd)}.no{color:var(--bad)}
+.link{background:none;border:0;color:#fff;text-decoration:underline;padding:12px 0;min-height:44px;opacity:.85}
+.center{text-align:center}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="f-fr" viewBox="0 0 300 200" preserveAspectRatio="xMidYMid slice"><rect width="100" height="200" fill="#0055A4"/><rect x="100" width="100" height="200" fill="#fff"/><rect x="200" width="100" height="200" fill="#EF4135"/></symbol>
+<symbol id="f-tr" viewBox="0 0 300 200" preserveAspectRatio="xMidYMid slice"><mask id="m-tr"><rect width="300" height="200" fill="#fff"/><circle cx="125" cy="100" r="40" fill="#000"/></mask><rect width="300" height="200" fill="#E30A17"/><circle cx="112" cy="100" r="50" fill="#fff" mask="url(#m-tr)"/><polygon points="148.0,100.0 164.3,94.4 164.6,77.2 174.9,91.0 191.4,85.9 181.5,100.0 191.4,114.1 174.9,109.0 164.6,122.8 164.3,105.6" fill="#fff"/></symbol>
+<symbol id="f-ma" viewBox="0 0 300 200" preserveAspectRatio="xMidYMid slice"><rect width="300" height="200" fill="#C1272D"/><polygon points="150.0,45.0 182.3,144.5 97.7,83.0 202.3,83.0 117.7,144.5" fill="none" stroke="#006233" stroke-width="7" stroke-linejoin="miter"/></symbol>
+<symbol id="f-dz" viewBox="0 0 300 200" preserveAspectRatio="xMidYMid slice"><mask id="m-dz"><rect width="300" height="200" fill="#fff"/><circle cx="162.5" cy="100" r="40" fill="#000"/></mask><rect width="150" height="200" fill="#006233"/><rect x="150" width="150" height="200" fill="#fff"/><circle cx="150" cy="100" r="50" fill="#D21034" mask="url(#m-dz)"/><polygon points="174.8,79.1 174.9,95.0 190.0,100.0 174.9,105.0 174.8,120.9 165.4,108.1 150.2,112.9 159.5,100.0 150.2,87.1 165.4,91.9" fill="#D21034"/></symbol>
+<symbol id="f-eg" viewBox="0 0 300 200" preserveAspectRatio="xMidYMid slice"><rect width="300" height="67" fill="#CE1126"/><rect y="67" width="300" height="66" fill="#fff"/><rect y="133" width="300" height="67" fill="#000"/><g fill="#C09300"><path d="M150 76 c-4 0-6 4-6 7 l-18 6 l14 3 l-10 6 l16-2 l2 18 h4 l2-18 l16 2 l-10-6 l14-3 l-18-6 c0-3-2-7-6-7z"/><rect x="141" y="117" width="18" height="5" rx="1"/></g></symbol>
+<symbol id="f-jo" viewBox="0 0 300 200" preserveAspectRatio="xMidYMid slice"><rect width="300" height="67" fill="#000"/><rect y="67" width="300" height="66" fill="#fff"/><rect y="133" width="300" height="67" fill="#007A3D"/><polygon points="0,0 150,100 0,200" fill="#CE1126"/><polygon points="52.0,83.0 55.5,92.8 65.3,89.4 59.8,98.2 68.6,103.8 58.3,105.0 59.4,115.3 52.0,108.0 44.6,115.3 45.7,105.0 35.4,103.8 44.2,98.2 38.7,89.4 48.5,92.8" fill="#fff"/></symbol>
+<symbol id="f-za" viewBox="0 0 300 200" preserveAspectRatio="xMidYMid slice"><rect width="300" height="100" fill="#E03C31"/><rect y="100" width="300" height="100" fill="#001489"/><path d="M0 0 L150 100 L0 200 M150 100 H300" fill="none" stroke="#fff" stroke-width="67"/><path d="M0 0 L150 100 L0 200 M150 100 H300" fill="none" stroke="#007749" stroke-width="40"/><polygon points="0,24 114,100 0,176" fill="#FFB81C"/><polygon points="0,42 87,100 0,158" fill="#000"/></symbol>
+</defs></svg>
+<div class="wrap">
+  <div class="top"><h1>World Quiz Run</h1><div class="me" id="me"></div></div>
+  <main class="card" id="app"><p class="mute">Connecting…</p></main>
+  <div class="center"><button class="link" id="change" hidden>Change team</button></div>
+</div>
+<script src="/__/firebase/10.12.2/firebase-app-compat.js"></script>
+<script src="/__/firebase/10.12.2/firebase-database-compat.js"></script>
+<script src="/__/firebase/init.js"></script>
+<script>
+{
+const C={jo:"Jordan",ma:"Morocco",dz:"Algeria",fr:"France",za:"South Africa",eg:"Egypt",tr:"Turkey"};
+const $=s=>document.querySelector(s);
+const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const flag=k=>C[k]?`<svg viewBox="0 0 300 200" aria-hidden="true"><use href="#f-${k}"/></svg>`:"";
+const store={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v)}catch(e){}}};
+let pid=store.get("wqr-pid");if(!pid){pid=Math.random().toString(36).slice(2,10);store.set("wqr-pid",pid)}
+let team=store.get("wqr-team");team=team==null?null:+team;
+let G={},myAns=null,ansRef=null,tick=null;
+if(!(window.firebase&&firebase.apps&&firebase.apps.length)){$("#app").innerHTML='<h2>Not connected</h2><p class="mute">Open this page from the game link the host shows on screen.</p>';}
+else{
+const ref=firebase.database().ref("game");
+const meRef=ref.child("players/"+pid);
+ref.on("value",sn=>{G=sn.val()||{};
+  const teams=G.teams||[];
+  if(team!=null&&(team>=teams.length)){team=null;store.set("wqr-team",null)}
+  if(team!=null){meRef.set({team});meRef.onDisconnect().remove()}
+  watchAns();render();
+});
+function watchAns(){
+  const key=G.phase==="q"||G.phase==="r"?G.i:null;
+  if(ansRef&&ansRef._k===key)return;
+  if(ansRef)ansRef.off();ansRef=null;myAns=null;
+  if(key==null||team==null)return;
+  ansRef=ref.child("answers/"+key+"/t"+team);ansRef._k=key;
+  ansRef.on("value",sn=>{myAns=sn.val();render()});
+}
+function choose(k){team=k;store.set("wqr-team",k);meRef.set({team:k});meRef.onDisconnect().remove();ansRef&&ansRef.off();ansRef=null;watchAns();render()}
+function answer(o){
+  if(G.phase!=="q"||myAns||team==null)return;
+  if(G.q&&Date.now()>G.q.deadline+1500)return;
+  ref.child("answers/"+G.i+"/t"+team).transaction(cur=>cur?undefined:{pick:o,by:pid,t:Date.now()});
+}
+$("#change").onclick=()=>{team=null;store.set("wqr-team",null);meRef.remove();render()};
+function render(){
+  clearInterval(tick);
+  const teams=G.teams||[],scores=G.scores||[];
+  $("#me").innerHTML=team!=null&&teams[team]?`${esc(teams[team])}<b>${scores[team]||0} pts</b>`:"";
+  $("#change").hidden=team==null||!(G.phase==="lobby"||G.phase==="setup");
+  const A=$("#app");
+  if(!teams.length||G.phase==="setup"){A.innerHTML='<h2>Waiting for the host</h2><p class="mute">The game will appear here as soon as the host sets up the teams.</p>';return}
+  if(team==null){A.innerHTML=`<h2>Choose your team</h2>${teams.map((t,k)=>`<button class="pick" data-k="${k}">${esc(t)}</button>`).join("")}`;
+    A.querySelectorAll(".pick").forEach(b=>b.onclick=()=>choose(+b.dataset.k));return}
+  if(G.phase==="lobby"){A.innerHTML=`<p class="tag">You're in</p><h2>${esc(teams[team])}</h2><p class="mute">Get ready. Questions will show up here when the host starts.</p>`;return}
+  if((G.phase==="q"||G.phase==="r")&&G.q){
+    const q=G.q,mine=myAns&&myAns.pick,rev=G.phase==="r";
+    A.innerHTML=`<p class="tag">${esc(q.c)} · ${(G.i||0)+1}/${q.n}</p>${rev?"":`<div class="timer"><div id="tb"></div></div>`}<h2>${esc(q.text)}</h2>
+      ${(q.opts||[]).map((o,k)=>{let c="";if(rev){c=o===G.correct?"right":o===mine?"wrong":"dim"}else if(o===mine)c="sel";
+        return `<button class="opt ${c}" data-o="${esc(o)}" ${mine||rev?"disabled":""}><i>${"ABCD"[k]}</i>${flag(o)}${esc(C[o]||o)}</button>`}).join("")}
+      <p class="center" style="margin-top:6px">${rev?(mine?(mine===G.correct?'<b class="ok">Correct! +100</b>':`<b class="no">Not this time — it was ${esc(C[G.correct])}</b>`):`<b class="no">No answer — it was ${esc(C[G.correct])}</b>`)
+        :mine?(myAns.by===pid?"Answer locked in for your team.":"A teammate locked in this answer."):'<span class="mute">First answer from your team counts.</span>'}</p>`;
+    A.querySelectorAll(".opt:not([disabled])").forEach(b=>b.onclick=()=>answer(b.dataset.o));
+    if(!rev){const secs=Math.max(1,(q.deadline-Date.now())/1000),tot=secs;const tb=$("#tb");
+      const up=()=>{const left=(q.deadline-Date.now())/1000;if(tb)tb.style.width=Math.max(0,Math.min(100,left/ (tot||1)*100))+"%";if(left<=0)clearInterval(tick)};up();tick=setInterval(up,250)}
+    return}
+  const rank=scores.map((s,k)=>({s,k})).sort((a,b)=>b.s-a.s).findIndex(r=>r.k===team)+1;
+  A.innerHTML=`<div class="center"><p class="tag">${G.phase==="final"?"Final":"Leaderboard"}</p><p class="big">#${rank||"–"}</p><p><b>${esc(teams[team])}</b> · ${scores[team]||0} pts</p><p class="mute">Look at the big screen!</p></div>`;
+}
+}
+}
+</script>
+</body>
+</html>

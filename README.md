@@ -1,38 +1,43 @@
 # World Quiz Run
 
-Host-led country quiz (Jordan, Morocco, Algeria, France, South Africa, Egypt, Turkey)
-with a hidden Algeria reveal and a NAL CLUSTER flag finale.
+Country quiz (Jordan, Morocco, Algeria, France, South Africa, Egypt, Turkey)
+with phone play for teams, a hidden Algeria reveal and a NAL CLUSTER flag finale.
 
-The whole game is one file: `docs/index.html`. No build step, no server, no database.
+- `docs/index.html` — host screen (laptop + projector)
+- `docs/play.html` — player screen (phones), opened at `/play`
 
-## Option A — GitHub Pages (free)
+## One-time Firebase setup
 
-1. Create a new repository on github.com (e.g. `world-quiz-run`). Public repos get Pages for free.
-2. On the repo page click **Add file → Upload files**, drag in the `docs` folder and the other files, then **Commit changes**.
-3. Go to **Settings → Pages**. Under **Build and deployment** choose **Deploy from a branch**, branch **main**, folder **/docs**, then **Save**.
-4. Wait about 1 minute and refresh the Pages settings to see the link.
-5. Your game is live at `https://<your-username>.github.io/world-quiz-run/`
+1. console.firebase.google.com → open project **world-quizz-9c9be**.
+2. Left menu → **Build → Realtime Database → Create Database**.
+   Pick a location (Belgium/europe-west1 is closest to Egypt) → **Start in locked mode** → Enable.
+   (The included `database.rules.json` opens just the game data when you deploy.)
+3. Project Overview → click the **</>** (Web) icon → name it `quiz` → **Register app**
+   (no need to copy the code; Firebase Hosting fills it in automatically).
 
-To update: edit `docs/index.html` on GitHub (pencil icon) and commit — it redeploys by itself.
+## Deploy (Mac Terminal)
 
-## Option B — Firebase Hosting (free Spark plan)
+```
+cd <drag the world-quiz-run folder here>
+npx firebase-tools login
+npx firebase-tools deploy --only hosting,database
+```
 
-1. Go to console.firebase.google.com → **Add project** (Google Analytics not needed).
-2. Copy the project ID and put it in `.firebaserc` instead of `your-firebase-project-id`.
-3. Install Node.js (nodejs.org), then in a terminal inside this folder run:
+- Host screen: https://world-quizz-9c9be.web.app
+- Players:     https://world-quizz-9c9be.web.app/play (also shown as a QR code)
 
-   ```
-   npm install -g firebase-tools
-   firebase login
-   firebase deploy --only hosting
-   ```
+## Running the game
 
-4. Your game is live at `https://<project-id>.web.app`
+1. Open the host link on the projector laptop, enter team names, press **Board the flight**.
+2. Players scan the QR, pick their team. The lobby shows how many phones joined each team.
+3. Press **Start the game**. Each question appears on every phone; the first answer from each team counts.
+4. The answer is revealed when every team with a phone has answered, the timer ends, or you press **Reveal answer**.
+5. Correct teams are marked automatically (tap a team to fix a mistake), then **Next flight** adds the points.
+   Phones show right/wrong and the team score.
 
-To update: edit `docs/index.html` and run `firebase deploy --only hosting` again.
+Host keys: Space/Enter next step · 1–8 toggle team · N show/hide NAL CLUSTER · T edit teams.
 
-## Notes
+Without the database (e.g. opened as a plain file) the host screen still works on its own, scored by tapping teams.
 
-- The Schneider Electric logo is uploaded from the setup screen and remembered only in that browser.
-  To make it permanent, put the logo file in `docs/` (e.g. `docs/logo.png`) and ask for the page to load it.
-- Works best on a laptop connected to a projector. Space/Enter = next step, keys 1–8 = mark teams correct.
+Note: the database rules let anyone with the link read/write the game data — fine for an event,
+and refreshing the host screen starts a fresh game.

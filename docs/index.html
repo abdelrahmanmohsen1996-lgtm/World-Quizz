@@ -31,6 +31,14 @@ h1,h2,.big{font-family:"Big Shoulders Display",Impact,sans-serif;line-height:1.0
 .ov{position:fixed;inset:0;background:rgba(0,0,0,.55);display:grid;place-items:center;padding:16px;z-index:9}
 .ov[hidden]{display:none}
 .ov .pass{width:min(560px,100%);max-height:90vh;overflow:auto}
+.lobby{display:grid;grid-template-columns:auto minmax(0,1fr);gap:24px;align-items:center}
+.qr{background:#fff;padding:12px;border-radius:14px;width:max-content}
+.qr img,.qr canvas{display:block;width:200px;height:200px}
+.url{font-size:clamp(18px,2.4vw,26px);font-weight:700;overflow-wrap:anywhere}
+.joined{list-style:none;padding:0;margin:12px 0 0;display:grid;gap:6px}
+.joined li{display:flex;justify-content:space-between;gap:10px;padding:8px 12px;border-radius:10px;background:var(--line)}
+.team small{display:block;font-size:12px;opacity:.85}
+@media(max-width:600px){.lobby{grid-template-columns:minmax(0,1fr)}}
 .pill{background:rgba(255,255,255,.15);color:var(--on);border-radius:99px;padding:6px 14px;font-weight:700;white-space:nowrap}
 .pass{background:var(--card);border-radius:22px;box-shadow:0 18px 40px rgba(0,0,0,.3);position:relative;overflow:hidden}
 .pass::before,.pass::after{content:"";position:absolute;top:118px;width:28px;height:28px;border-radius:50%;background:var(--bg)}
@@ -44,12 +52,16 @@ h1,h2,.big{font-family:"Big Shoulders Display",Impact,sans-serif;line-height:1.0
 .body{padding:24px 28px 28px}
 .q{font-size:clamp(24px,3.4vw,38px);font-weight:700;line-height:1.2;margin:0 0 22px;text-wrap:balance}
 .opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-.opt{display:flex;align-items:center;gap:14px;border:2px solid var(--line);border-radius:14px;padding:12px 16px;font-size:clamp(17px,2vw,22px);font-weight:500;min-height:64px}
+.opt{font:inherit;color:var(--ink);background:transparent;text-align:left;cursor:pointer;display:flex;align-items:center;gap:14px;border:2px solid var(--line);border-radius:14px;padding:12px 16px;font-size:clamp(17px,2vw,22px);font-weight:500;min-height:64px}
 .opt i{font-style:normal;flex:none;width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:var(--line);font-weight:700}
 .opt svg{flex:none;width:42px;height:28px;border-radius:4px;box-shadow:0 0 0 1px rgba(0,0,0,.12)}
 .opt.right{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,transparent)}
 .opt.right i{background:var(--ok);color:#fff}
 .opt.dim{opacity:.4}
+.opt.wrong{border-color:#e11d48;background:color-mix(in srgb,#e11d48 12%,transparent);opacity:1}
+.opt.wrong i{background:#e11d48;color:#fff}
+.opt:not(.right):not(.wrong):not(.dim):hover{border-color:var(--acc)}
+.opt:focus-visible{outline:3px solid #ffd166;outline-offset:2px}
 .timer{height:8px;background:var(--line);border-radius:9px;overflow:hidden;margin:0 0 20px}
 .timer div{height:100%;background:var(--acc);width:100%;transition:width 1s linear}
 .fact{margin-top:18px;padding:14px 16px;border-radius:12px;background:color-mix(in srgb,var(--acc) 12%,transparent)}
@@ -112,6 +124,10 @@ input{font:inherit;font-size:16px;width:100%;padding:12px 14px;border-radius:10p
   <main id="app"></main>
   <div id="teams"></div>
 </div>
+<script src="/__/firebase/10.12.2/firebase-app-compat.js"></script>
+<script src="/__/firebase/10.12.2/firebase-database-compat.js"></script>
+<script src="/__/firebase/init.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
 {
 const C={jo:"Jordan",ma:"Morocco",dz:"Algeria",fr:"France",za:"South Africa",eg:"Egypt",tr:"Turkey"};
@@ -151,6 +167,13 @@ const Q=[
 const KEYS=Object.keys(C);
 const S={teams:[],i:0,secs:20,phase:"setup",opts:[],hit:new Set(),hits:[],t:null,left:0,logo:"",view:-1};
 try{S.logo=localStorage.getItem("wqr-logo")||""}catch(e){}
+/* Online mode: when served from Firebase Hosting with a Realtime Database, phones join at /play */
+const NET={on:false,ref:null,ansRef:null};S.players={};S.ans={};
+try{if(window.firebase&&firebase.apps&&firebase.apps.length&&firebase.database){NET.ref=firebase.database().ref("game");NET.on=true;
+  NET.ref.child("players").on("value",sn=>{S.players=sn.val()||{};if(S.phase==="lobby")lobbyList()})}}catch(e){NET.on=false}
+const put=o=>{if(NET.on)NET.ref.update(o).catch(()=>{})};
+const pushScores=()=>put({scores:S.teams.map(t=>t.score),teams:S.teams.map(t=>t.name)});
+const joinUrl=()=>location.origin+"/play";
 const $=s=>document.querySelector(s);
 const esc=v=>String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
@@ -161,7 +184,7 @@ const stopT=()=>{clearInterval(S.t);S.t=null};
 const reset=()=>{S.teams.forEach(t=>{t.score=0;t.alg=0});S.hits=[];setup()};
 function brand(){$("#brand").innerHTML=(S.logo?`<img src="${esc(S.logo)}" alt="Schneider Electric logo">`:"")+"<h1>World Quiz Run</h1>"}
 function setup(){
-  S.phase="setup";S.mid=false;hostBar();$("#prog").textContent="Check-in";brand();
+  S.phase="setup";S.mid=false;hostBar();put({phase:"setup"});$("#prog").textContent="Check-in";brand();
   $("#app").innerHTML=`<section class="pass">
   <div class="head"><div class="route"><span class="code">CAI</span>${plane}<span class="code">???</span></div><div class="meta">30 questions · 7 countries<b>Around the cluster</b></div></div>
   <form class="body" id="f">
@@ -183,11 +206,27 @@ function setup(){
   $("#f").onsubmit=e=>{e.preventDefault();
     const v=[...names.querySelectorAll("input")].map(x=>x.value.trim()).filter(Boolean).slice(0,8);
     if(v.length<2)return;
-    S.teams=v.map(name=>({name,score:0,alg:0}));S.hits=[];S.secs=Math.max(5,Math.min(90,+$("#secs").value||20));S.i=0;question()};
+    S.teams=v.map(name=>({name,score:0,alg:0}));S.hits=[];S.secs=Math.max(5,Math.min(90,+$("#secs").value||20));S.i=0;
+    if(NET.on){put({phase:"lobby",i:0,answers:null,correct:null,q:null});pushScores();lobby()}else question()};
   $("#teams").innerHTML="";
 }
+function lobby(){
+  S.phase="lobby";hostBar();$("#prog").textContent="Boarding";
+  $("#app").innerHTML=`<section class="pass">
+  <div class="head"><div class="route"><span class="code">CAI</span>${plane}<span class="code">???</span></div><div class="meta">Players join<b>on their phones</b></div></div>
+  <div class="body"><div class="lobby"><div class="qr" id="qr"></div>
+    <div><p class="q" style="margin-bottom:8px">Scan to join your team</p><p style="margin:0;color:var(--mute)">Or open</p><p class="url">${esc(joinUrl())}</p><ul class="joined" id="joined"></ul></div></div>
+    <div class="bar"><span style="color:var(--mute)">Several phones can join the same team. The first answer from each team counts.</span><button class="btn" id="go">Start the game</button></div>
+  </div></section>`;
+  try{new QRCode($("#qr"),{text:joinUrl(),width:200,height:200})}catch(e){$("#qr").remove()}
+  lobbyList();$("#teams").innerHTML="";
+  $("#go").onclick=question;
+}
+function lobbyList(){const el=$("#joined");if(!el)return;
+  const n=S.teams.map(()=>0);Object.values(S.players).forEach(p=>{if(p&&n[p.team]!=null)n[p.team]++});
+  el.innerHTML=S.teams.map((t,k)=>`<li><span>${esc(t.name)}</span><b>${n[k]} ${n[k]===1?"phone":"phones"}</b></li>`).join("")}
 function teamStrip(clickable){
-  $("#teams").innerHTML=`<div class="teams">${S.teams.map((t,k)=>`<button class="team${S.hit.has(k)?" on":""}" data-k="${k}" ${clickable?"":"disabled"} aria-pressed="${S.hit.has(k)}"><b>${esc(t.name)}</b><span>${t.score}</span></button>`).join("")}</div>${clickable?'<p class="hint">Tap every team that answered correctly (or press 1–8), then press Next.</p>':""}`;
+  $("#teams").innerHTML=`<div class="teams">${S.teams.map((t,k)=>`<button class="team${S.hit.has(k)?" on":""}" data-k="${k}" ${clickable?"":"disabled"} aria-pressed="${S.hit.has(k)}"><b>${esc(t.name)}</b><span>${t.score}</span>${NET.on&&S.phase==="q"?`<small>${S.ans["t"+k]?"Answered ✓":"Thinking…"}</small>`:NET.on&&S.phase==="r"&&S.ans["t"+k]?`<small>Picked ${C[S.ans["t"+k].pick]||"?"}</small>`:""}</button>`).join("")}</div>${clickable?`<p class="hint">${NET.on?"Teams that answered right on their phones are already marked. Tap to adjust, then press Next.":"Tap every team that answered correctly (or press 1–8), then press Next."}</p>`:""}`;
   if(clickable)document.querySelectorAll(".team").forEach(b=>b.onclick=()=>toggle(+b.dataset.k));
 }
 function toggle(k){S.hit.has(k)?S.hit.delete(k):S.hit.add(k);teamStrip(true)}
@@ -203,28 +242,38 @@ function question(){
   <div class="body">
     <div class="timer"><div id="tb"></div></div>
     <p class="q">${esc(q.q)}</p>
-    <div class="opts">${S.opts.map((o,k)=>`<div class="opt" data-o="${o}"><i>${"ABCD"[k]}</i>${flag(o)}${C[o]}</div>`).join("")}</div>
+    <div class="opts">${S.opts.map((o,k)=>`<button class="opt" data-o="${o}"><i>${"ABCD"[k]}</i>${flag(o)}${C[o]}</button>`).join("")}</div>
     <div id="fact"></div>
     <div class="bar"><span class="pill" style="background:var(--line);color:var(--ink)" id="sec">${S.secs}s</span><button class="btn" id="go">Reveal answer</button></div>
   </div></section>`;
   teamStrip(false);
   S.left=S.secs;startT();
-  $("#go").onclick=reveal;
+  $("#go").onclick=()=>reveal();
+  if(NET.on){
+    S.ans={};if(NET.ansRef)NET.ansRef.off();
+    put({phase:"q",i:S.i,correct:null,q:{text:q.q,c:q.c,opts:S.opts,n:Q.length,deadline:Date.now()+S.secs*1000}});
+    NET.ansRef=NET.ref.child("answers/"+S.i);
+    NET.ansRef.on("value",sn=>{S.ans=sn.val()||{};if(S.phase==="q"){teamStrip(false);const live=new Set(Object.values(S.players).map(p=>p&&p.team));const need=S.teams.map((t,k)=>k).filter(k=>live.has(k));if(need.length&&need.every(k=>S.ans["t"+k]))reveal()}});
+    document.querySelectorAll(".opt").forEach(b=>{b.style.cursor="default"});
+  }else document.querySelectorAll(".opt").forEach(b=>b.onclick=()=>reveal(b.dataset.o));
 }
-function reveal(){
+function reveal(pick){
   if(S.phase!=="q")return;stopT();S.phase="r";
   const q=Q[S.i];
-  document.querySelectorAll(".opt").forEach(e=>e.classList.add(e.dataset.o===q.a?"right":"dim"));
+  document.querySelectorAll(".opt").forEach(e=>{e.classList.add(e.dataset.o===q.a?"right":e.dataset.o===pick?"wrong":"dim");e.onclick=null;e.style.cursor="default"});
   document.querySelector(".route .code:last-child").textContent=CODE[q.a];
-  $("#fact").innerHTML=`<div class="fact"><b>${C[q.a]}.</b> ${esc(q.f)}</div>`;
+  const verdict=pick?(pick===q.a?"Correct! ":`Not ${C[pick]} — it's `):"";
+  $("#fact").innerHTML=`<div class="fact"><b>${verdict}${C[q.a]}.</b> ${esc(q.f)}</div>`;
   $("#tb").style.width="0%";
   const go=$("#go");go.textContent=S.i===Q.length-1?"Final results":"Next flight";go.onclick=next;
+  if(NET.on){S.teams.forEach((t,k)=>{const a=S.ans["t"+k];if(a&&a.pick===q.a)S.hit.add(k)});put({phase:"r",correct:q.a})}
   teamStrip(true);
 }
 function next(){
   const q=Q[S.i];
   S.hits[S.i]=new Set(S.hit);
   S.hit.forEach(k=>{S.teams[k].score+=100;if(q.a==="dz")S.teams[k].alg++});
+  pushScores();
   S.i++;
   if(S.i>=Q.length)return board(true);
   if(S.i%10===0)return board(false);
@@ -232,7 +281,7 @@ function next(){
 }
 const ranked=()=>S.teams.map((t,k)=>({...t,k})).sort((a,b)=>b.score-a.score);
 function board(final){
-  stopT();S.phase="b";hostBar();S.hit=new Set();
+  stopT();S.phase="b";hostBar();put({phase:final?"final":"board"});S.hit=new Set();
   $("#prog").textContent=final?"Landed":"Layover";
   const r=ranked();
   $("#app").innerHTML=`<section class="pass">
@@ -247,7 +296,7 @@ function board(final){
   $("#go").onclick=final?twist:question;
 }
 function twist(){
-  S.phase="t";$("#prog").textContent="Hidden destination";
+  S.phase="t";$("#prog").textContent="Hidden destination";put({phase:"final"});
   const al=Q.filter(q=>q.a==="dz");
   const best=ranked().sort((a,b)=>b.alg-a.alg)[0];
   $("#app").innerHTML=`<section class="pass" style="text-align:center">
@@ -359,7 +408,7 @@ function teamsEditor(){
     const keep=()=>S.teams.forEach((t,k)=>{const v=$("#e"+k).value.trim();if(v)t.name=v});
     $("#tadd").onclick=()=>{keep();if(S.teams.length<8){S.teams.push({name:"Team "+(S.teams.length+1),score:0,alg:0});draw()}};
     $("#tcan").onclick=()=>{ov.hidden=true};
-    $("#tf").onsubmit=e=>{e.preventDefault();keep();ov.hidden=true;
+    $("#tf").onsubmit=e=>{e.preventDefault();keep();ov.hidden=true;pushScores();if(S.phase==="lobby")lobbyList();
       if(S.mid)cluster();else if(S.phase==="c")cluster();else teamStrip(S.phase==="r")};
   };
   draw();ov.hidden=false;
