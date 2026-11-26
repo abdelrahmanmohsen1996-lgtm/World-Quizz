@@ -29,11 +29,14 @@ npx firebase-tools deploy --only hosting,database
 ## Running the game
 
 1. Open the host link on the projector laptop, enter team names, press **Board the flight**.
-2. Players scan the QR, pick their team. The lobby shows how many phones joined each team.
-3. Press **Start the game**. Each question appears on every phone; the first answer from each team counts.
-4. The answer is revealed when every team with a phone has answered, the timer ends, or you press **Reveal answer**.
-5. Correct teams are marked automatically (tap a team to fix a mistake), then **Next flight** adds the points.
-   Phones show right/wrong and the team score.
+2. Players scan the QR and pick their team. The lobby shows how many phones joined each team.
+3. Press **Start the game**. The big screen shows NAL CLUSTER with each team's name on its flag spots.
+4. Each team answers its own questions on their phones, at their own pace. Wrong answer → try again
+   (100 pts first try, 70 second, 40 third, 20 after). Right answer → the flag replaces the team name on the big screen.
+5. When every flag is revealed, press **Final results** → leaderboard → Algeria reveal → finished cluster.
+   **End game now** (tap twice) stops early.
+
+Question split: with N teams, team 1 gets questions 1, 1+N, 1+2N…, team 2 gets 2, 2+N… (see the answer key).
 
 Host keys: Space/Enter next step · 1–8 toggle team · N show/hide NAL CLUSTER · T edit teams.
 

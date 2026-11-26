@@ -95,6 +95,7 @@ input{font:inherit;font-size:16px;width:100%;padding:12px 14px;border-radius:10p
 .cl-logo .ph{border:2px dashed var(--line);border-radius:12px;padding:14px 20px;color:var(--mute);font-size:14px}
 .cluster{width:100%;height:auto;display:block}
 .tabs{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:14px 0}
+.tabs[hidden]{display:none}
 .tab{border:2px solid var(--line);background:transparent;color:var(--ink);border-radius:99px;padding:8px 16px;min-height:44px;font-weight:700}
 .tab.on{background:var(--ink);color:var(--card);border-color:var(--ink)}
 .legend{display:flex;flex-wrap:wrap;gap:10px 18px;justify-content:center;margin-top:10px;font-weight:500}
@@ -165,6 +166,11 @@ const Q=[
 {c:"History",q:"The temples of Abu Simbel are in which country?",a:"eg",f:"In the 1960s they were cut into blocks and moved to escape flooding from the High Dam."}
 ];
 const KEYS=Object.keys(C);
+/* Self-paced online play: slot i belongs to team i % N; a team retries a question until it is right */
+const PTS=[100,70,40,20],PAL=["#2563eb","#db2777","#d97706","#7c3aed","#0891b2","#ea580c","#4d7c0f","#475569"];
+const rng=seed=>()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
+const optsFor=i=>{const r=rng(i*7919+13),sh=a=>{a=a.slice();for(let j=a.length-1;j>0;j--){const k=Math.floor(r()*(j+1));[a[j],a[k]]=[a[k],a[j]]}return a};
+  const a=Q[i].a;let o=sh(KEYS.filter(k=>k!==a&&k!=="dz")).slice(0,3);if(a!=="dz"&&r()<.6)o[0]="dz";return sh([a,...o])};
 const S={teams:[],i:0,secs:20,phase:"setup",opts:[],hit:new Set(),hits:[],t:null,left:0,logo:"",view:-1};
 try{S.logo=localStorage.getItem("wqr-logo")||""}catch(e){}
 /* Online mode: when served from Firebase Hosting with a Realtime Database, phones join at /play */
@@ -181,7 +187,7 @@ const flag=(k,cls)=>`<svg ${cls?`class="${cls}"`:""} viewBox="0 0 300 200" role=
 const plane=`<svg viewBox="0 0 200 30" aria-hidden="true"><path d="M4 15 H196" stroke="currentColor" stroke-width="2" stroke-dasharray="6 6" opacity=".35"/><path d="M92 15 l-10 -9 h5 l12 9 l-12 9 h-5z M99 15 h14 l4 -4 h4 l-2 4 l2 4 h-4 l-4 -4" fill="var(--acc)"/></svg>`;
 const startT=()=>{stopT();S.t=setInterval(()=>{S.left--;$("#sec").textContent=Math.max(0,S.left)+"s";$("#tb").style.width=Math.max(0,S.left/S.secs*100)+"%";if(S.left<=0)reveal()},1000)};
 const stopT=()=>{clearInterval(S.t);S.t=null};
-const reset=()=>{S.teams.forEach(t=>{t.score=0;t.alg=0});S.hits=[];setup()};
+const reset=()=>{S.teams.forEach(t=>{t.score=0;t.alg=0});S.hits=[];S.online=false;S.seen=new Set();if(NET.stRef)NET.stRef.off();setup()};
 function brand(){$("#brand").innerHTML=(S.logo?`<img src="${esc(S.logo)}" alt="Schneider Electric logo">`:"")+"<h1>World Quiz Run</h1>"}
 function setup(){
   S.phase="setup";S.mid=false;hostBar();put({phase:"setup"});$("#prog").textContent="Check-in";brand();
@@ -189,7 +195,7 @@ function setup(){
   <div class="head"><div class="route"><span class="code">CAI</span>${plane}<span class="code">???</span></div><div class="meta">30 questions · 7 countries<b>Around the cluster</b></div></div>
   <form class="body" id="f">
     <p class="q" style="margin-bottom:6px">Name your teams</p>
-    <p style="color:var(--mute);margin:0">2 to 8 teams. Project this screen; the host taps the teams that got each answer right.</p>
+    <p style="color:var(--mute);margin:0">2 to 8 teams. Project this screen. With phones, each team solves its own questions and reveals its own flags in the NAL CLUSTER.</p>
     <div class="row" id="names"></div>
     <div class="bar">
       <button type="button" class="btn ghost" id="add">+ Add team</button>
@@ -216,17 +222,32 @@ function lobby(){
   <div class="head"><div class="route"><span class="code">CAI</span>${plane}<span class="code">???</span></div><div class="meta">Players join<b>on their phones</b></div></div>
   <div class="body"><div class="lobby"><div class="qr" id="qr"></div>
     <div><p class="q" style="margin-bottom:8px">Scan to join your team</p><p style="margin:0;color:var(--mute)">Or open</p><p class="url">${esc(joinUrl())}</p><ul class="joined" id="joined"></ul></div></div>
-    <div class="bar"><span style="color:var(--mute)">Several phones can join the same team. The first answer from each team counts.</span><button class="btn" id="go">Start the game</button></div>
+    <div class="bar"><span style="color:var(--mute)">Several phones can join the same team. Each team keeps trying until it gets its question right.</span><button class="btn" id="go">Start the game</button></div>
   </div></section>`;
   try{new QRCode($("#qr"),{text:joinUrl(),width:200,height:200})}catch(e){$("#qr").remove()}
   lobbyList();$("#teams").innerHTML="";
-  $("#go").onclick=question;
+  $("#go").onclick=startLive;
 }
 function lobbyList(){const el=$("#joined");if(!el)return;
   const n=S.teams.map(()=>0);Object.values(S.players).forEach(p=>{if(p&&n[p.team]!=null)n[p.team]++});
   el.innerHTML=S.teams.map((t,k)=>`<li><span>${esc(t.name)}</span><b>${n[k]} ${n[k]===1?"phone":"phones"}</b></li>`).join("")}
+function startLive(){
+  S.online=true;S.N=S.teams.length;S.state={};S.seen=new Set();S.done=false;S.teams.forEach(t=>{t.score=0;t.alg=0});
+  put({phase:"live",N:S.N,state:null,scores:S.teams.map(()=>0)});
+  if(NET.stRef)NET.stRef.off();NET.stRef=NET.ref.child("state");
+  NET.stRef.on("value",sn=>{S.state=sn.val()||{};applyState();if(S.phase==="live")cluster()});
+  S.phase="live";cluster();
+}
+const tIdx=k=>((S.state||{})["t"+k]||{}).idx||0;
+const tLen=k=>Q.filter((q,i)=>i%S.N===k).length;
+const solvedLive=i=>tIdx(i%S.N)>Math.floor(i/S.N);
+function applyState(){
+  S.teams.forEach((t,k)=>{const st=(S.state||{})["t"+k]||{};t.score=st.score||0;t.alg=Q.filter((q,i)=>q.a==="dz"&&i%S.N===k&&solvedLive(i)).length});
+  put({scores:S.teams.map(t=>t.score)});
+  S.done=S.teams.every((t,k)=>tIdx(k)>=tLen(k));
+}
 function teamStrip(clickable){
-  $("#teams").innerHTML=`<div class="teams">${S.teams.map((t,k)=>`<button class="team${S.hit.has(k)?" on":""}" data-k="${k}" ${clickable?"":"disabled"} aria-pressed="${S.hit.has(k)}"><b>${esc(t.name)}</b><span>${t.score}</span>${NET.on&&S.phase==="q"?`<small>${S.ans["t"+k]?"Answered ✓":"Thinking…"}</small>`:NET.on&&S.phase==="r"&&S.ans["t"+k]?`<small>Picked ${C[S.ans["t"+k].pick]||"?"}</small>`:""}</button>`).join("")}</div>${clickable?`<p class="hint">${NET.on?"Teams that answered right on their phones are already marked. Tap to adjust, then press Next.":"Tap every team that answered correctly (or press 1–8), then press Next."}</p>`:""}`;
+  $("#teams").innerHTML=`<div class="teams">${S.teams.map((t,k)=>`<button class="team${S.hit.has(k)?" on":""}" data-k="${k}" ${clickable?"":"disabled"} aria-pressed="${S.hit.has(k)}"><b>${esc(t.name)}</b><span>${t.score}</span>${S.online&&S.N?`<small>${Math.min(tIdx(k),tLen(k))} / ${tLen(k)} flags</small>`:""}${NET.on&&S.phase==="q"?`<small>${S.ans["t"+k]?"Answered ✓":"Thinking…"}</small>`:NET.on&&S.phase==="r"&&S.ans["t"+k]?`<small>Picked ${C[S.ans["t"+k].pick]||"?"}</small>`:""}</button>`).join("")}</div>${clickable?`<p class="hint">${NET.on?"Teams that answered right on their phones are already marked. Tap to adjust, then press Next.":"Tap every team that answered correctly (or press 1–8), then press Next."}</p>`:""}`;
   if(clickable)document.querySelectorAll(".team").forEach(b=>b.onclick=()=>toggle(+b.dataset.k));
 }
 function toggle(k){S.hit.has(k)?S.hit.delete(k):S.hit.add(k);teamStrip(true)}
@@ -344,9 +365,11 @@ function cluster(){
   if(!S.geo){S.geo="wait";const go=()=>{S.geo=measure();cluster()};
     (document.fonts&&document.fonts.load?document.fonts.load(`${FS}px 'Archivo Black'`,"NALCUSTER").catch(()=>{}):Promise.resolve()).then(go);return}
   if(S.geo==="wait")return;
-  if(!mid)S.phase="c";$("#prog").textContent="NAL CLUSTER";hostBar();
-  const got=i=>{const h=S.hits[i];if(!h)return false;return S.view<0?h.size>0:h.has(S.view)};
-  let defs="",fill="",outl="",d=0;
+  const live=S.phase==="live";
+  if(!mid&&!live)S.phase="c";$("#prog").textContent=live?(S.done?"Cluster complete":"Live"):"NAL CLUSTER";hostBar();
+  const got=i=>{if(S.online)return solvedLive(i);const h=S.hits[i];if(!h)return false;return S.view<0?h.size>0:h.has(S.view)};
+  if(!S.seen)S.seen=new Set();
+  let defs="",fill="",outl="",labels="",d=0;
   LET.forEach((ch,n)=>{
     const {cx,base}=pos(n),G=S.geo[n];
     const t=`<text x="${cx.toFixed(1)}" y="${base}" text-anchor="middle" font-family="${FONT}" font-size="${FS}" textLength="${LW}" lengthAdjust="spacingAndGlyphs">${ch}</text>`;
@@ -354,9 +377,15 @@ function cluster(){
     let g="";
     G.bands.forEach((B,b)=>{
       const i=n*3+b,y=G.top+b*G.bh,h=G.bh-3,bx=cx-CW/2;
-      if(!got(i)){g+=`<rect x="${bx.toFixed(1)}" y="${y.toFixed(1)}" width="${CW.toFixed(1)}" height="${h.toFixed(1)}" fill="var(--line)"/>`;return}
-      const half=Math.max(B.c-B.l,B.r-B.c)+2,fh=Math.max(h,half*2/1.5),fw=fh*1.5;
-      g+=`<svg class="tile" style="animation-delay:${d++*70}ms" x="${bx.toFixed(1)}" y="${y.toFixed(1)}" width="${CW.toFixed(1)}" height="${h.toFixed(1)}" overflow="hidden"><use href="#f-${Q[i].a}" x="${(B.c-fw/2-bx).toFixed(1)}" y="${((h-fh)/2).toFixed(1)}" width="${fw.toFixed(1)}" height="${fh.toFixed(1)}"/></svg>`;
+      if(!got(i)){
+        if(S.online){const k=i%S.N,nm=(S.teams[k]||{}).name||"";
+          g+=`<rect x="${bx.toFixed(1)}" y="${y.toFixed(1)}" width="${CW.toFixed(1)}" height="${h.toFixed(1)}" fill="${PAL[k%8]}"/>`;
+          const fs=Math.max(11,Math.min(22,(B.r-B.l+30)/(Math.max(nm.length,3)*.56)));
+          labels+=`<text x="${B.c.toFixed(1)}" y="${(y+h/2).toFixed(1)}" font-size="${fs.toFixed(1)}">${esc(nm)}</text>`;
+        }else g+=`<rect x="${bx.toFixed(1)}" y="${y.toFixed(1)}" width="${CW.toFixed(1)}" height="${h.toFixed(1)}" fill="var(--line)"/>`;
+        return}
+      const half=Math.max(B.c-B.l,B.r-B.c)+2,fh=Math.max(h,half*2/1.5),fw=fh*1.5,fresh=!S.seen.has(i);S.seen.add(i);
+      g+=`<svg class="${fresh?"tile":""}" style="animation-delay:${fresh?d++*70:0}ms" x="${bx.toFixed(1)}" y="${y.toFixed(1)}" width="${CW.toFixed(1)}" height="${h.toFixed(1)}" overflow="hidden"><use href="#f-${Q[i].a}" x="${(B.c-fw/2-bx).toFixed(1)}" y="${((h-fh)/2).toFixed(1)}" width="${fw.toFixed(1)}" height="${fh.toFixed(1)}"/></svg>`;
     });
     fill+=`<g clip-path="url(#c${n})">${g}</g>`;
   });
@@ -367,20 +396,22 @@ function cluster(){
     <div class="cl-logo">${S.logo?`<img src="${esc(S.logo)}" alt="Schneider Electric logo">`:`<div class="ph">Upload the Schneider Electric logo on the setup screen to show it here</div>`}</div>
     <svg class="cluster" viewBox="0 0 1000 545" role="img" aria-label="NAL CLUSTER filled with ${total} earned flags">
       <defs>${defs}</defs>${fill}
-      <g fill="none" stroke="var(--ink)" stroke-width="3" opacity=".5">${outl}</g>
+      <g fill="#fff" stroke="rgba(0,0,0,.55)" stroke-width="3" paint-order="stroke" font-family="'DM Sans',system-ui,sans-serif" font-weight="700" text-anchor="middle" dominant-baseline="central">${labels}</g>
     </svg>
-    <div class="tabs"><button class="tab${S.view<0?" on":""}" data-v="-1">All teams</button>${S.teams.map((t,k)=>`<button class="tab${S.view===k?" on":""}" data-v="${k}">${esc(t.name)}</button>`).join("")}</div>
+    ${live?`<p style="margin:6px 0 0;font-weight:700;font-size:20px">${S.done?"The NAL CLUSTER is complete!":"Solve your questions on your phones to reveal your flags"}</p><p style="margin:4px 0 0;color:var(--mute)">${esc(joinUrl())}</p>`:""}
+    <div class="tabs" ${S.online?"hidden":""}><button class="tab${S.view<0?" on":""}" data-v="-1">All teams</button>${S.teams.map((t,k)=>`<button class="tab${S.view===k?" on":""}" data-v="${k}">${esc(t.name)}</button>`).join("")}</div>
     <p style="margin:0;font-weight:700">${total} of ${Q.length} flags earned</p>
     <div class="legend">${KEYS.filter(k=>count[k]).map(k=>`<span>${flag(k)}${C[k]} × ${count[k]}</span>`).join("")}</div>
-    <div class="bar" style="justify-content:center"><button class="btn ${mid?"":"ghost"}" id="back">${mid?"Back to game":"Play again"}</button></div>
+    <div class="bar" style="justify-content:center">${live?(S.done?`<button class="btn" id="go">Final results</button>`:`<button class="btn ghost" id="end">End game now</button>`):`<button class="btn ${mid?"":"ghost"}" id="back">${mid?"Back to game":"Play again"}</button>`}</div>
   </div></section>`;
   document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{S.view=+b.dataset.v;cluster()});
-  $("#back").onclick=mid?closeNal:reset;
+  if(live){if($("#go"))$("#go").onclick=()=>board(true);if($("#end"))$("#end").onclick=()=>{const b=$("#end");if(b.dataset.ok){board(true)}else{b.dataset.ok=1;b.textContent="Tap again to end"}}}
+  else $("#back").onclick=mid?closeNal:reset;
   if(!mid)teamStrip(false);
 }
 /* Host controls: NAL CLUSTER peek and team editor, usable any time after setup */
 function hostBar(){
-  const on=S.phase!=="setup";$("#hbTeams").hidden=!on;$("#hbNal").hidden=!on||S.phase==="c";
+  const on=S.phase!=="setup";$("#hbTeams").hidden=!on;$("#hbNal").hidden=!on||S.phase==="c"||S.phase==="live"||S.phase==="lobby";
   $("#hbNal").classList.toggle("on",!!S.mid);$("#hbNal").textContent=S.mid?"Hide NAL CLUSTER":"NAL CLUSTER";
 }
 function openNal(){
@@ -402,14 +433,14 @@ function teamsEditor(){
     <p class="q" style="font-size:28px;margin-bottom:6px">Teams</p>
     <p style="color:var(--mute);margin:0">Rename teams or add new ones (up to 8). Scores are kept.</p>
     <div class="row">${S.teams.map((t,k)=>`<div><label class="l" for="e${k}">Team ${k+1} · ${t.score} pts</label><input id="e${k}" value="${esc(t.name)}" maxlength="22"></div>`).join("")}</div>
-    <div class="bar"><button type="button" class="btn ghost" id="tadd" ${S.teams.length>=8?"disabled":""}>+ Add team</button>
+    <div class="bar"><button type="button" class="btn ghost" id="tadd" ${S.teams.length>=8||S.online?"disabled":""}>+ Add team</button>
     <span style="display:flex;gap:10px"><button type="button" class="btn ghost" id="tcan">Cancel</button><button class="btn">Save</button></span></div>
   </form></section>`;
     const keep=()=>S.teams.forEach((t,k)=>{const v=$("#e"+k).value.trim();if(v)t.name=v});
     $("#tadd").onclick=()=>{keep();if(S.teams.length<8){S.teams.push({name:"Team "+(S.teams.length+1),score:0,alg:0});draw()}};
     $("#tcan").onclick=()=>{ov.hidden=true};
     $("#tf").onsubmit=e=>{e.preventDefault();keep();ov.hidden=true;pushScores();if(S.phase==="lobby")lobbyList();
-      if(S.mid)cluster();else if(S.phase==="c")cluster();else teamStrip(S.phase==="r")};
+      if(S.mid||S.phase==="c"||S.phase==="live")cluster();else teamStrip(S.phase==="r")};
   };
   draw();ov.hidden=false;
 }

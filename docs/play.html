@@ -56,13 +56,50 @@ button{font:inherit;cursor:pointer}
 <script>
 {
 const C={jo:"Jordan",ma:"Morocco",dz:"Algeria",fr:"France",za:"South Africa",eg:"Egypt",tr:"Turkey"};
+const KEYS=Object.keys(C);
+const Q=[
+{c:"Landmarks",q:"The ancient rock-cut city of Petra is in which country?",a:"jo",f:"Petra is carved straight into rose-red sandstone cliffs."},
+{c:"Sport",q:"Which country hosted the first FIFA World Cup in Africa, in 2010?",a:"za",f:"The final was played at Soccer City in Johannesburg."},
+{c:"Geography",q:"Which is the largest country in Africa by area?",a:"dz",f:"It took the title after Sudan split in 2011."},
+{c:"Landmarks",q:"The Hagia Sophia is in which country?",a:"tr",f:"It has stood in Istanbul for almost 1,500 years."},
+{c:"Culture",q:"The Statue of Liberty was a gift to the USA from which country?",a:"fr",f:"It was designed by Frédéric Bartholdi, with a frame by Gustave Eiffel."},
+{c:"Sport",q:"Which country was the first African team to reach a World Cup semi-final?",a:"ma",f:"Morocco did it at Qatar 2022."},
+{c:"History",q:"The only surviving wonder of the Ancient World is in which country?",a:"eg",f:"The Great Pyramid of Giza is about 4,500 years old."},
+{c:"Sport",q:"Which country won the 2019 Africa Cup of Nations?",a:"dz",f:"They beat Senegal 1–0 in the final in Cairo."},
+{c:"Geography",q:"Which country has three capital cities?",a:"za",f:"Pretoria, Cape Town and Bloemfontein share the job."},
+{c:"Geography",q:"Wadi Rum, the “Valley of the Moon”, is in which country?",a:"jo",f:"Many films set on Mars were shot in its red desert."},
+{c:"Geography",q:"Istanbul is a city on two continents. Which country is it in?",a:"tr",f:"The Bosphorus splits the city between Europe and Asia."},
+{c:"Sport",q:"The Tour de France cycling race is held in which country?",a:"fr",f:"It has been run almost every year since 1903."},
+{c:"Tech",q:"Websites ending in “.dz” belong to which country?",a:"dz",f:"DZ comes from “Dzayer”, the local name for the country."},
+{c:"Landmarks",q:"Chefchaouen, the famous “Blue City”, is in which country?",a:"ma",f:"Its streets and walls are painted every shade of blue."},
+{c:"Geography",q:"The Suez Canal runs through which country?",a:"eg",f:"It opened in 1869 and links the Mediterranean and Red Seas."},
+{c:"History",q:"Nelson Mandela became the first president of which country in 1994?",a:"za",f:"He had spent 27 years in prison before his election."},
+{c:"Geography",q:"Which of these countries is on the shore of the Dead Sea?",a:"jo",f:"The Dead Sea shore is the lowest point on land on Earth."},
+{c:"Music",q:"Raï music, made famous by Cheb Khaled, started in which country?",a:"dz",f:"Raï grew up in the port city of Oran."},
+{c:"Landmarks",q:"Cappadocia, famous for sunrise hot-air balloons, is in which country?",a:"tr",f:"People once carved whole homes and churches into its rock towers."},
+{c:"Geography",q:"Counting its territories, which country has the most time zones in the world?",a:"fr",f:"Thanks to its overseas territories, France spans 12 time zones."},
+{c:"Culture",q:"The dirham is the currency of which of these countries?",a:"ma",f:"The UAE also uses a dirham, but it is a different currency."},
+{c:"Sport",q:"Which country has won the most Africa Cup of Nations titles?",a:"eg",f:"Egypt has won the tournament seven times."},
+{c:"History",q:"The Roman ruins of Timgad, called the “Pompeii of Africa”, are in which country?",a:"dz",f:"Timgad was founded by Emperor Trajan around 100 AD."},
+{c:"Landmarks",q:"Table Mountain looks over which country's coast?",a:"za",f:"Its flat top towers over Cape Town."},
+{c:"Geography",q:"Amman is the capital of which country?",a:"jo",f:"The city was first built on seven hills."},
+{c:"Geography",q:"Ankara is the capital of which country?",a:"tr",f:"Istanbul is bigger, but Ankara has been the capital since 1923."},
+{c:"Landmarks",q:"The Louvre, the world's most visited museum, is in which country?",a:"fr",f:"It is home to the Mona Lisa."},
+{c:"Geography",q:"Which country is the only one that borders both Tunisia and Libya?",a:"dz",f:"It has seven neighbours in total."},
+{c:"Geography",q:"Rabat is the capital of which country?",a:"ma",f:"Casablanca is bigger, but Rabat is the capital."},
+{c:"History",q:"The temples of Abu Simbel are in which country?",a:"eg",f:"In the 1960s they were cut into blocks and moved to escape flooding from the High Dam."}
+];
+const PTS=[100,70,40,20],PAL=["#2563eb","#db2777","#d97706","#7c3aed","#0891b2","#ea580c","#4d7c0f","#475569"];
+const rng=seed=>()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
+const optsFor=i=>{const r=rng(i*7919+13),sh=a=>{a=a.slice();for(let j=a.length-1;j>0;j--){const k=Math.floor(r()*(j+1));[a[j],a[k]]=[a[k],a[j]]}return a};
+  const a=Q[i].a;let o=sh(KEYS.filter(k=>k!==a&&k!=="dz")).slice(0,3);if(a!=="dz"&&r()<.6)o[0]="dz";return sh([a,...o])};
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const flag=k=>C[k]?`<svg viewBox="0 0 300 200" aria-hidden="true"><use href="#f-${k}"/></svg>`:"";
 const store={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v)}catch(e){}}};
 let pid=store.get("wqr-pid");if(!pid){pid=Math.random().toString(36).slice(2,10);store.set("wqr-pid",pid)}
 let team=store.get("wqr-team");team=team==null?null:+team;
-let G={},myAns=null,ansRef=null,tick=null;
+let G={},myAns=null,ansRef=null,tick=null,prevIdx=null,flash=null,flashT=null;
 if(!(window.firebase&&firebase.apps&&firebase.apps.length)){$("#app").innerHTML='<h2>Not connected</h2><p class="mute">Open this page from the game link the host shows on screen.</p>';}
 else{
 const ref=firebase.database().ref("game");
@@ -87,17 +124,45 @@ function answer(o){
   if(G.q&&Date.now()>G.q.deadline+1500)return;
   ref.child("answers/"+G.i+"/t"+team).transaction(cur=>cur?undefined:{pick:o,by:pid,t:Date.now()});
 }
+const myState=()=>((G.state||{})["t"+team])||{};
+const myList=()=>Q.map((q,i)=>i).filter(i=>i%(G.N||1)===team);
+function answerLive(o){
+  const st=myState(),idx=st.idx||0,list=myList();if(idx>=list.length)return;
+  const i=list[idx];if((st.wrong||{})[o])return;
+  ref.child("state/t"+team).transaction(cur=>{
+    cur=cur||{idx:0,score:0};if((cur.idx||0)!==idx)return;
+    if(o===Q[i].a){const tries=Object.keys(cur.wrong||{}).length,pts=PTS[Math.min(tries,3)];
+      return{idx:idx+1,score:(cur.score||0)+pts,wrong:null,last:{i,pts,by:pid}}}
+    const w=Object.assign({},cur.wrong||{});w[o]=true;return Object.assign({},cur,{wrong:w});
+  });
+}
 $("#change").onclick=()=>{team=null;store.set("wqr-team",null);meRef.remove();render()};
 function render(){
   clearInterval(tick);
   const teams=G.teams||[],scores=G.scores||[];
-  $("#me").innerHTML=team!=null&&teams[team]?`${esc(teams[team])}<b>${scores[team]||0} pts</b>`:"";
+  if(G.phase==="live"&&team!=null){const st=myState(),idx=st.idx||0;
+    if(prevIdx!=null&&idx>prevIdx&&st.last){flash=st.last;clearTimeout(flashT);flashT=setTimeout(()=>{flash=null;render()},1800)}
+    prevIdx=idx}else prevIdx=null;
+  const myPts=G.phase==="live"?(myState().score||0):(scores[team]||0);
+  $("#me").innerHTML=team!=null&&teams[team]?`${esc(teams[team])}<b>${myPts} pts</b>`:"";
   $("#change").hidden=team==null||!(G.phase==="lobby"||G.phase==="setup");
-  const A=$("#app");
+  const A=$("#app"),prevH=A._h;A._h=null;
   if(!teams.length||G.phase==="setup"){A.innerHTML='<h2>Waiting for the host</h2><p class="mute">The game will appear here as soon as the host sets up the teams.</p>';return}
   if(team==null){A.innerHTML=`<h2>Choose your team</h2>${teams.map((t,k)=>`<button class="pick" data-k="${k}">${esc(t)}</button>`).join("")}`;
     A.querySelectorAll(".pick").forEach(b=>b.onclick=()=>choose(+b.dataset.k));return}
-  if(G.phase==="lobby"){A.innerHTML=`<p class="tag">You're in</p><h2>${esc(teams[team])}</h2><p class="mute">Get ready. Questions will show up here when the host starts.</p>`;return}
+  if(G.phase==="lobby"){A.innerHTML=`<p class="tag">You're in</p><h2>${esc(teams[team])}</h2><p class="mute">Get ready. When the host starts, your team's questions appear here. Keep trying until you get each one right to reveal your flags.</p>`;return}
+  if(G.phase==="live"){
+    const st=myState(),idx=st.idx||0,list=myList(),wrong=st.wrong||{};
+    if(flash){const q=Q[flash.i];A.innerHTML=`<div class="center"><p class="tag">Flag revealed!</p>${flag(q.a).replace("<svg",'<svg style="width:180px;height:120px;border-radius:10px;box-shadow:0 8px 20px rgba(0,0,0,.2)"')}<p class="big ok">+${flash.pts}</p><p><b>${esc(C[q.a])}.</b> ${esc(q.f)}</p></div>`;return}
+    if(idx>=list.length){A.innerHTML=`<div class="center"><p class="tag">All done</p><p class="big ok">${st.score||0} pts</p><h2>All your team's flags are in the NAL CLUSTER</h2><p class="mute">Watch the big screen while the other teams finish.</p></div>`;return}
+    const i=list[idx],q=Q[i],tries=Object.keys(wrong).length;
+    const html=`<p class="tag">${esc(q.c)} · Question ${idx+1} of ${list.length}</p><h2>${esc(q.q)}</h2>
+      ${optsFor(i).map((o,k)=>`<button class="opt ${wrong[o]?"wrong":""}" data-o="${o}" ${wrong[o]?"disabled":""}><i>${"ABCD"[k]}</i>${flag(o)}${esc(C[o])}</button>`).join("")}
+      <p class="center" style="margin-top:6px">${tries?`<b class="no">Not quite. Try again!</b><br><span class="mute">Worth ${PTS[Math.min(tries,3)]} pts now</span>`:`<span class="mute">Get it right to reveal your flag · ${PTS[0]} pts</span>`}</p>`;
+    if(prevH===html){A._h=html;return}
+    A.innerHTML=html;A._h=html;
+    A.querySelectorAll(".opt:not([disabled])").forEach(b=>b.onclick=()=>answerLive(b.dataset.o));
+    return}
   if((G.phase==="q"||G.phase==="r")&&G.q){
     const q=G.q,mine=myAns&&myAns.pick,rev=G.phase==="r";
     A.innerHTML=`<p class="tag">${esc(q.c)} · ${(G.i||0)+1}/${q.n}</p>${rev?"":`<div class="timer"><div id="tb"></div></div>`}<h2>${esc(q.text)}</h2>
