@@ -24,6 +24,13 @@ h1,h2,.big{font-family:"Big Shoulders Display",Impact,sans-serif;line-height:1.0
 .brand{display:flex;align-items:center;gap:14px}
 .brand img{height:40px;max-width:200px;object-fit:contain;background:#fff;border-radius:8px;padding:4px 8px}
 .top h1{font-size:clamp(28px,4vw,40px);letter-spacing:.5px}
+.host{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.hb{border:2px solid rgba(255,255,255,.35);background:transparent;color:#fff;border-radius:99px;padding:6px 14px;min-height:40px;font-weight:700}
+.hb.on{background:var(--acc);color:#0f1c15;border-color:var(--acc)}
+.hb:focus-visible{outline:3px solid #ffd166;outline-offset:2px}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.55);display:grid;place-items:center;padding:16px;z-index:9}
+.ov[hidden]{display:none}
+.ov .pass{width:min(560px,100%);max-height:90vh;overflow:auto}
 .pill{background:rgba(255,255,255,.15);color:var(--on);border-radius:99px;padding:6px 14px;font-weight:700;white-space:nowrap}
 .pass{background:var(--card);border-radius:22px;box-shadow:0 18px 40px rgba(0,0,0,.3);position:relative;overflow:hidden}
 .pass::before,.pass::after{content:"";position:absolute;top:118px;width:28px;height:28px;border-radius:50%;background:var(--bg)}
@@ -100,7 +107,8 @@ input{font:inherit;font-size:16px;width:100%;padding:12px 14px;border-radius:10p
 <symbol id="f-za" viewBox="0 0 300 200" preserveAspectRatio="xMidYMid slice"><rect width="300" height="100" fill="#E03C31"/><rect y="100" width="300" height="100" fill="#001489"/><path d="M0 0 L150 100 L0 200 M150 100 H300" fill="none" stroke="#fff" stroke-width="67"/><path d="M0 0 L150 100 L0 200 M150 100 H300" fill="none" stroke="#007749" stroke-width="40"/><polygon points="0,24 114,100 0,176" fill="#FFB81C"/><polygon points="0,42 87,100 0,158" fill="#000"/></symbol>
 </defs></svg>
 <div class="wrap">
-  <div class="top"><div class="brand" id="brand"><h1>World Quiz Run</h1></div><span class="pill" id="prog">Check-in</span></div>
+  <div class="top"><div class="brand" id="brand"><h1>World Quiz Run</h1></div><div class="host"><button class="hb" id="hbTeams" hidden>Teams</button><button class="hb" id="hbNal" hidden>NAL CLUSTER</button><span class="pill" id="prog">Check-in</span></div></div>
+  <div class="ov" id="ov" hidden></div>
   <main id="app"></main>
   <div id="teams"></div>
 </div>
@@ -148,11 +156,12 @@ const esc=v=>String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const flag=(k,cls)=>`<svg ${cls?`class="${cls}"`:""} viewBox="0 0 300 200" role="img" aria-label="Flag of ${C[k]}"><use href="#f-${k}"/></svg>`;
 const plane=`<svg viewBox="0 0 200 30" aria-hidden="true"><path d="M4 15 H196" stroke="currentColor" stroke-width="2" stroke-dasharray="6 6" opacity=".35"/><path d="M92 15 l-10 -9 h5 l12 9 l-12 9 h-5z M99 15 h14 l4 -4 h4 l-2 4 l2 4 h-4 l-4 -4" fill="var(--acc)"/></svg>`;
+const startT=()=>{stopT();S.t=setInterval(()=>{S.left--;$("#sec").textContent=Math.max(0,S.left)+"s";$("#tb").style.width=Math.max(0,S.left/S.secs*100)+"%";if(S.left<=0)reveal()},1000)};
 const stopT=()=>{clearInterval(S.t);S.t=null};
 const reset=()=>{S.teams.forEach(t=>{t.score=0;t.alg=0});S.hits=[];setup()};
 function brand(){$("#brand").innerHTML=(S.logo?`<img src="${esc(S.logo)}" alt="Schneider Electric logo">`:"")+"<h1>World Quiz Run</h1>"}
 function setup(){
-  S.phase="setup";$("#prog").textContent="Check-in";brand();
+  S.phase="setup";S.mid=false;hostBar();$("#prog").textContent="Check-in";brand();
   $("#app").innerHTML=`<section class="pass">
   <div class="head"><div class="route"><span class="code">CAI</span>${plane}<span class="code">???</span></div><div class="meta">30 questions · 7 countries<b>Around the cluster</b></div></div>
   <form class="body" id="f">
@@ -183,7 +192,7 @@ function teamStrip(clickable){
 }
 function toggle(k){S.hit.has(k)?S.hit.delete(k):S.hit.add(k);teamStrip(true)}
 function question(){
-  stopT();S.phase="q";S.hit=new Set();
+  stopT();S.phase="q";hostBar();S.hit=new Set();
   const q=Q[S.i];
   let others=shuffle(KEYS.filter(k=>k!==q.a&&k!=="dz")).slice(0,3);
   if(q.a!=="dz"&&Math.random()<.6)others[0]="dz";
@@ -199,8 +208,7 @@ function question(){
     <div class="bar"><span class="pill" style="background:var(--line);color:var(--ink)" id="sec">${S.secs}s</span><button class="btn" id="go">Reveal answer</button></div>
   </div></section>`;
   teamStrip(false);
-  S.left=S.secs;
-  S.t=setInterval(()=>{S.left--;$("#sec").textContent=Math.max(0,S.left)+"s";$("#tb").style.width=Math.max(0,S.left/S.secs*100)+"%";if(S.left<=0)reveal()},1000);
+  S.left=S.secs;startT();
   $("#go").onclick=reveal;
 }
 function reveal(){
@@ -224,7 +232,7 @@ function next(){
 }
 const ranked=()=>S.teams.map((t,k)=>({...t,k})).sort((a,b)=>b.score-a.score);
 function board(final){
-  stopT();S.phase="b";S.hit=new Set();
+  stopT();S.phase="b";hostBar();S.hit=new Set();
   $("#prog").textContent=final?"Landed":"Layover";
   const r=ranked();
   $("#app").innerHTML=`<section class="pass">
@@ -283,10 +291,11 @@ function measure(){
   return geo;
 }
 function cluster(){
+  const mid=!!S.mid;
   if(!S.geo){S.geo="wait";const go=()=>{S.geo=measure();cluster()};
     (document.fonts&&document.fonts.load?document.fonts.load(`${FS}px 'Archivo Black'`,"NALCUSTER").catch(()=>{}):Promise.resolve()).then(go);return}
   if(S.geo==="wait")return;
-  S.phase="c";$("#prog").textContent="NAL CLUSTER";
+  if(!mid)S.phase="c";$("#prog").textContent="NAL CLUSTER";hostBar();
   const got=i=>{const h=S.hits[i];if(!h)return false;return S.view<0?h.size>0:h.has(S.view)};
   let defs="",fill="",outl="",d=0;
   LET.forEach((ch,n)=>{
@@ -314,14 +323,54 @@ function cluster(){
     <div class="tabs"><button class="tab${S.view<0?" on":""}" data-v="-1">All teams</button>${S.teams.map((t,k)=>`<button class="tab${S.view===k?" on":""}" data-v="${k}">${esc(t.name)}</button>`).join("")}</div>
     <p style="margin:0;font-weight:700">${total} of ${Q.length} flags earned</p>
     <div class="legend">${KEYS.filter(k=>count[k]).map(k=>`<span>${flag(k)}${C[k]} × ${count[k]}</span>`).join("")}</div>
-    <div class="bar" style="justify-content:center"><button class="btn ghost" id="back">Play again</button></div>
+    <div class="bar" style="justify-content:center"><button class="btn ${mid?"":"ghost"}" id="back">${mid?"Back to game":"Play again"}</button></div>
   </div></section>`;
   document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{S.view=+b.dataset.v;cluster()});
-  $("#back").onclick=reset;
-  teamStrip(false);
+  $("#back").onclick=mid?closeNal:reset;
+  if(!mid)teamStrip(false);
 }
+/* Host controls: NAL CLUSTER peek and team editor, usable any time after setup */
+function hostBar(){
+  const on=S.phase!=="setup";$("#hbTeams").hidden=!on;$("#hbNal").hidden=!on||S.phase==="c";
+  $("#hbNal").classList.toggle("on",!!S.mid);$("#hbNal").textContent=S.mid?"Hide NAL CLUSTER":"NAL CLUSTER";
+}
+function openNal(){
+  if(S.phase==="setup"||S.phase==="c"||S.mid)return;
+  stopT();S.mid=true;S.saveProg=$("#prog").textContent;
+  S.saved=[...$("#app").childNodes];S.saved.forEach(n=>n.remove());
+  S.savedT=[...$("#teams").childNodes];S.savedT.forEach(n=>n.remove());
+  cluster();
+}
+function closeNal(){
+  if(!S.mid)return;S.mid=false;
+  $("#app").replaceChildren(...S.saved);$("#teams").replaceChildren(...S.savedT);
+  $("#prog").textContent=S.saveProg;hostBar();
+  if(S.phase==="q"&&S.left>0)startT();
+}
+function teamsEditor(){
+  const ov=$("#ov");
+  const draw=()=>{ov.innerHTML=`<section class="pass"><form class="body" id="tf">
+    <p class="q" style="font-size:28px;margin-bottom:6px">Teams</p>
+    <p style="color:var(--mute);margin:0">Rename teams or add new ones (up to 8). Scores are kept.</p>
+    <div class="row">${S.teams.map((t,k)=>`<div><label class="l" for="e${k}">Team ${k+1} · ${t.score} pts</label><input id="e${k}" value="${esc(t.name)}" maxlength="22"></div>`).join("")}</div>
+    <div class="bar"><button type="button" class="btn ghost" id="tadd" ${S.teams.length>=8?"disabled":""}>+ Add team</button>
+    <span style="display:flex;gap:10px"><button type="button" class="btn ghost" id="tcan">Cancel</button><button class="btn">Save</button></span></div>
+  </form></section>`;
+    const keep=()=>S.teams.forEach((t,k)=>{const v=$("#e"+k).value.trim();if(v)t.name=v});
+    $("#tadd").onclick=()=>{keep();if(S.teams.length<8){S.teams.push({name:"Team "+(S.teams.length+1),score:0,alg:0});draw()}};
+    $("#tcan").onclick=()=>{ov.hidden=true};
+    $("#tf").onsubmit=e=>{e.preventDefault();keep();ov.hidden=true;
+      if(S.mid)cluster();else if(S.phase==="c")cluster();else teamStrip(S.phase==="r")};
+  };
+  draw();ov.hidden=false;
+}
+$("#hbNal").onclick=()=>S.mid?closeNal():openNal();
+$("#hbTeams").onclick=teamsEditor;
 document.addEventListener("keydown",e=>{
-  if(e.target.tagName==="INPUT")return;
+  if(e.target.tagName==="INPUT"||!$("#ov").hidden)return;
+  if(e.key==="n"||e.key==="N"){S.mid?closeNal():openNal();return}
+  if(e.key==="t"||e.key==="T"){if(S.phase!=="setup")teamsEditor();return}
+  if(S.mid)return;
   if(e.key===" "||e.key==="Enter"){const g=$("#go");if(g){e.preventDefault();g.click()}}
   const n=parseInt(e.key,10);
   if(S.phase==="r"&&n>=1&&n<=S.teams.length)toggle(n-1);
